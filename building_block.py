@@ -32,12 +32,13 @@ class Bit:
 	
 
 ##########################################      
-####### 2. LOGIC GATE class ##################### 
+######## 2. LOGIC GATE class ##################### 
 ############################################### 
 
 
 class NAND_gate:
-	@staticmethod  #for static methods, you can call the method using the class itself. There is no need to instantiate an object first to apply the method.
+	@staticmethod  
+	#for static methods, you can call the method using the class itself. There is no need to instantiate an object first to apply the method.
 	def compute(bit1, bit2):
 		if (type(bit1), type(bit2)) != (Bit, Bit):
 			raise ValueError(" You have not supplied a bit object")
@@ -46,7 +47,7 @@ class NAND_gate:
 		else:
 			return Bit(1)
 
-## you can built all kind of gates using the NAND gate
+## NAND gates are the fundamental gates from which other gates are made!
 
 class NOT_gate:
 	@staticmethod
@@ -93,13 +94,15 @@ class MemoryBlock:
 
 class Byte:
     ##initialisation of 8 memory blocks
-    def __init__(self):
-        self.memory_blocks = [MemoryBlock(1) for _ in range(8)] #by default the switch is on
+    def __init__(self, s_bit = Bit(1)):
+        self.memory_blocks = [MemoryBlock(s_bit.get()) for _ in range(8)] #by default the switch is on
 
     def change_switch(self):
         [memory_block.change_switch() for memory_block in self.memory_blocks]
 
     def compute(self, input_8bit):
+        if len(input_8bit) != 8:
+            raise ValueError('You have not given a valid 8 bit string')
         [memory_block.compute(Bit(int(bit))) for memory_block, bit in zip(self.memory_blocks, input_8bit)]
 
     def retrieve_memory(self):
@@ -117,12 +120,12 @@ class Byte:
 
 
 ##########################################      
-####### 5.  class ##################### 
+####### 5.  Enabler and Register class ##################### 
 ###########################################
 
 class Enabler:
 
-	def __init__(self, e):
+	def __init__(self, e = Bit(1)):
 		self.e_bit = e
 		self.output = Byte()
 	def change_switch(self):
@@ -133,7 +136,10 @@ class Enabler:
 			B = Byte()
 			B.compute(input_bit_string)
 			self.output = B
-
+	def retrieve_switch(self):
+		return self.e_bit.get()
+	def retrieve_memory(self):
+		return self.output.retrieve_memory()
 	def __repr__(self) -> str:
 		return f'This Enabler is set at {self.e_bit.state} and outputs {self.output.retrieve_memory()}'
 	
@@ -141,25 +147,29 @@ class Register:
 
 	#Stores the input bits into a byte and if needed outputs it.
 	def __init__(self, e, s):
-		self.e_bit = e
-		self.s_bit = s
-		self.byte = Byte() #initialises an empty byte
-		self.output = Byte()
+		self.byte = Byte(s) #initialises an empty byte
+		self.enab = Enabler(e) #enabler object tied to the byte object
 
 	def change_e_switch(self):
-		self.e_bit.flip()
-
+		self.enab.change_switch()
 	def change_s_switch(self):
-		self.s_bit.flip()
+		self.byte.change_switch()
 
 	def compute(self, input_bit_string):
-		if self.s_bit.get() == 1:
-			self.byte.compute(input_bit_string)
-
-			if self.e_bit.get() == 1:
-				self.output = self.byte
+		self.enab = Enabler()
+		self.byte.compute(input_bit_string)
+		if self.byte.retrieve_switch() == 1:
+			self.enab.compute(input_bit_string)
+			return self.enab.retrieve_memory()
 	def __repr__(self):
-		return (f'This Register has e_switch {self.e_bit.state} and s_switch {self.s_bit.state}\n' 
-		  		f'It holds a memory of {self.byte.retrieve_memory()} and output of {self.output.retrieve_memory()}')
+		return (f'This Register has s_switch {self.byte.retrieve_switch()} and e_switch {self.enab.retrieve_switch()}\n' 
+		  		f'It holds a memory of {self.byte.retrieve_memory()} and output of {self.enab.retrieve_memory()}')
+	
+
+##########################################      
+####### 5.  Enabler and Register class ##################### 
+###########################################
+
+
 
 
